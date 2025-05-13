@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link href="https://fonts.cdnfonts.com/css/product-sans" rel="stylesheet">
+    
+    <title>E-commerce Platform</title>
+
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top" style="height: 14vh; position: sticky; top: 0; z-index: 1020;">
+            <div class="container-fluid" style="width: 130vh;">
+                <a class="navbar-brand mx-auto" style="font-size: 2rem;" href="#">E-commerce Platform</a>
+                <btn class="btn btn-outline-success" type="button">Login</btn>
+            </div>
+        </nav>
+    </header>
+
+    <style>
+        button{
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-2" style="width: 140vh">
+        <div class="row border w3-round-xlarge bg-light shadow-sm">
+            <div class="col-md-5 d-flex flex-column">
+                <div class="w3-margin w3-padding w3-round-xlarge bg-white shadow-sm">
+                    <h2 class="text-primary">Payment Details</h2>
+<style>
+                    :root {
+                        /* Light theme (default) */
+                        --background-color: #ffffff;
+                        --text-color: #333333;
+                        --heading-color: #222222;
+                        --link-color: #0066cc;
+                      }
+                      
+                      [data-theme="dark"] {
+                        /* Dark theme */
+                        --background-color: #222222;
+                        --text-color: #f0f0f0;
+                        --heading-color: #ffffff;
+                        --link-color: #6699ff;
+                      }
+                      
+                      /* Apply these variables to your elements */
+                      body {
+                        background-color: var(--background-color);
+                        color: var(--text-color);
+                        transition: all 0.3s ease;
+                      }
+                      
+                      h1, h2, h3, h4, h5, h6 {
+                        color: var(--heading-color);
+                      }
+                      
+                      a {
+                        color: var(--link-color);
+                      }</style>
+
+                    <button id="theme-toggle">
+                        Toggle Dark Mode
+                      </button>
+                      <script src="js/dark.js"></script>
+                </div>
+            </div><span class="col-md-7"></span>
+            <div class="col-md-5 d-flex flex-column align-items-center">
+                <img id="productImage" src="sources/qr.jpg" class="card-img-top enlarge-image mb-auto w3-padding" alt="Product Image" >
+            </div>
+            <div class="col-md-7 d-flex flex-column">   
+                <div class="w3-margin w3-padding w3-round-xlarge bg-white shadow-sm">
+                    <h3 class="text-primary">Receipt</h3>
+                    <p>Item: Product Name</p>
+                    <p>Quantity: 1</p>
+                    <p>Price per item: RM 3.00</p>
+                    <p>Total Amount: RM 3.00</p>
+                    <p>Reference: 123456789</p>
+                </div>
+                <div class="col-md-7 d-flex flex-column">   
+                    <div class="w3-margin w3-padding w3-round-xlarge bg-white shadow-sm">
+                        <p>Scan the QR code to make payment</p>
+                        <p>Amount: RM 3.00</p>
+                        <p>Reference: 123456789</p>
+                    </div>
+                </div>
+                <div class="w3-margin col-md-12 d-flex justify-content-center mt-3" style="width:  30vh;">
+                    <button class="btn btn-primary">Confirm Payment</button>
+                </div>
+            </div>
+            
+        </div>       
+    </div>
+</body>
+</html>

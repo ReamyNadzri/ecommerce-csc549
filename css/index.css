@@ -24,7 +24,7 @@ a {
     flex-wrap: wrap;
     justify-content: center;
     gap: 30px;
-    max-width: 1200px;
+    max-width: 1320px;
 }
 
 .menu-item {
@@ -159,6 +159,7 @@ a {
     justify-content: center;
     align-items: center;
     transition: background-color 0.3s ease, transform 0.2s ease;
+    
 }
 
 .add-button:hover {
@@ -304,4 +305,104 @@ a {
     height: 35px;
     fill: white;
 }
+.menu-section {
+            position: relative;
+        }
+
+        .scroll-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0,0,0,0.1);
+            color: #333;
+            border: none;
+            z-index: 10;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .scroll-btn:hover {
+            background-color: rgba(0,0,0,0.2);
+        }
+
+        .scroll-btn-left {
+            left: -30px;
+        }
+
+        .scroll-btn-right {
+            right: -30px;
+        }
+
+        .scrollable-menu-container {
+            display: flex;
+            overflow-x: hidden;
+            gap: 20px;
+            padding: 20px 15px;
+            scroll-behavior: smooth;
+            position: relative;
+        }
+
+        .scrollable-menu-item {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            width: 210px;
+            height: 300px;
+            text-align: center;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            padding-top: 140px; /* Space for the image */
+            margin-top: 140px; /* Offset for the image */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 1px solid #f0f0f0;
+            flex: 0 0 250px;
+        }
+
+        .scrollable-menu-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .scrollable-menu-item-image {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            margin-bottom: 15px;
+        }
+
+        .scrollable-menu-item-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .scrollable-menu-item-price {
+            color: #e74c3c;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .scrollable-menu-item-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #e74c3c;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .section-title {
+            text-align: center;
+            margin: 20px 0;
+            font-weight: bold;
+            color: #333;
+        }
   

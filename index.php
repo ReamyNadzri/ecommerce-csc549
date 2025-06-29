@@ -13,6 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/index.css" />
     
+    
     <title>AF Platform</title>
 
     <header class="header-main" style="">
@@ -36,6 +37,11 @@
                         <li class="nav-item">
                             <a class="nav-link" href="#"><i class="fas fa-info-circle"></i> About</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link border rounded px-4 py-1 pt-2 pb-2" href="login.html" style="border-width:2px;">
+                                <i class="fas fa-sign-in-alt"></i> Login / Register
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -48,9 +54,9 @@
     
 </head>
 
-<body>
+<body class="bg-light" style="font-family: 'Poppins', sans-serif;">
     
-    <div class="container mt-4 bg-light pb-4" style="width: 140vh;">
+    <div class="container mt-4 pb-4" style="width: 140vh;">
 
         <div id="carouselExampleAutoplaying" class="carousel slide" data-bs-ride="carousel">
             <div class="carousel-inner">
@@ -100,27 +106,116 @@
 
         <!-- Tab content -->
         <div class="tab-content" id="productTabContent">
+            
             <!-- Food Tab -->
             <div class="tab-pane fade show active" id="food" role="tabpanel">
+                
                 <div class="row mt-4">
-                    <div class="menu-container">
+                    
+                    <div class="menu-section bg-white shadow-sm" style="box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
+                        <h2 class=" text-center section-title">Recommended For You</h2>
+                        <div class="position-relative">
+                            <style>
+                                .scroll-btn {
+                                    background: #fff !important;
+                                    color: #333;
+                                    border: none;
+                                    border-radius: 50%;
+                                    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                                    transition: transform 0.2s cubic-bezier(.4,2,.6,1), box-shadow 0.2s;
+                                    width: 40px;
+                                    height: 40px;
+                                    display: inline-flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    font-size: 1.5rem;
+                                    z-index: 2;
+                                }
+                                .scroll-btn:hover {
+                                    transform: scale(1.5);
+                                    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+                                }
+                            </style>
+                            <button class="scroll-btn scroll-btn-left" onclick="scrollMenu('foods', 'left')">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <button class="scroll-btn scroll-btn-right" onclick="scrollMenu('foods', 'right')">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                            <div id="foods-menu" class="scrollable-menu-container">
+
+
+                                <?php
+                                for ($i = 0; $i < 10; $i++): ?>
+                                    <div class="scrollable-menu-item"><a type="submit">
+                                        <div class="food-image-container">
+                                            <img src="sources/nasilemak.png" alt="" class="food-image card-img-top"><div class="discount-badge">Jimat Giler!</div>
+                                        </div>
+                                        <small class="w3-padding w3-display-right text-muted">90g</small>
+                                        <form method="get" action="items.html" class="d-flex align-items-center flex-wrap gap-2">
+                                            <input type="hidden" name="item" value="Nasi Segera (Nasi Lemak)" >
+                                            <input type="hidden" name="price" value="4" >
+                                            <input type="hidden" name="image" value="sources/nasilemak.png" >
+                                            <input type="hidden" name="weight" value="90g" >
+                                            <div>
+                                                <h2 class="food-title mb-1">Nasi Segera<br>(Nasi Lemak)</h2>
+                                                <div class="food-price mb-1">
+                                                    <span class="original-price">RM 6.90</span>
+                                                    RM 4.00
+                                                </div>
+                                                <p class="food-description mb-0">Nasi lemak segera dengan sambal berlemak</p>
+                                            </div>
+                                            <button type="submit" class="add-button ms-2" title="Add to Cart">+</button>
+                                            <button type="button" class="add-button ms-1" title="Edit" disabled>
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="add-button ms-1" title="Disable" disabled>
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                            <button type="button" class="add-button ms-1" title="Delete" disabled>
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                <?php endfor; ?>
+
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <h2 class="align-items-center text-center section-title">Browse More Food!</h2>
+                    <div class="menu-container align-items-center bg-white shadow-sm" style="box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
+                        
+                       
                         <div class="menu-item"><a type="submit">
                             <div class="food-image-container">
                                 <img src="sources/nasilemak.png" alt="" class="food-image card-img-top"><div class="discount-badge">Jimat Giler!</div>
                             </div>
                             <small class="w3-padding w3-display-right text-muted">90g</small>
-                            <form method="get" action="items.html">
+                            <form method="get" action="items.html" class="d-flex align-items-center flex-wrap gap-2">
                                 <input type="hidden" name="item" value="Nasi Segera (Nasi Lemak)" >
                                 <input type="hidden" name="price" value="4" >
                                 <input type="hidden" name="image" value="sources/nasilemak.png" >
                                 <input type="hidden" name="weight" value="90g" >
-                                <h2 class="food-title">Nasi Segera<br>(Nasi Lemak)</h2>
-                                <div class="food-price">
-                                    <span class="original-price">RM 6.90</span>
-                                    RM 4.00
-                                  </div>
-                                <p class="food-description">Nasi lemak segera dengan sambal berlemak</p></a>
-                                <button type="submit" class="add-button">+</button></form>
+                                <div>
+                                    <h2 class="food-title mb-1">Nasi Segera<br>(Nasi Lemak)</h2>
+                                    <div class="food-price mb-1">
+                                        <span class="original-price">RM 6.90</span>
+                                        RM 4.00
+                                    </div>
+                                    <p class="food-description mb-0">Nasi lemak segera dengan sambal berlemak</p>
+                                </div>
+                                <button type="submit" class="add-button ms-2" title="Add to Cart">+</button>
+                                <button type="button" class="add-button ms-1" title="Edit" disabled>
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="add-button ms-1" title="Disable" disabled>
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                                <button type="button" class="add-button ms-1" title="Delete" disabled>
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
                         </div>
                         
                         <div class="menu-item"><a type="submit"></a>
@@ -311,6 +406,19 @@
             <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
         </svg>
     </a>
+
+    <script>
+         function scrollMenu(menuType, direction) {
+            const menu = document.getElementById(`${menuType}-menu`);
+            const itemWidth = menu.querySelector('.scrollable-menu-item').offsetWidth + 20; // width + gap
+            
+            if (direction === 'left') {
+                menu.scrollLeft -= itemWidth;
+            } else {
+                menu.scrollLeft += itemWidth;
+            }
+        }
+    </script>
 
 </body>
 <footer class="mt-5">

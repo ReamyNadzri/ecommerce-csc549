@@ -10,51 +10,14 @@
     <link rel="stylesheet" href="css/index.css" />
     
     <title>AF Platform</title>
-    <style>
-        .header-main {
-            background: linear-gradient(135deg, #ff8a00 0%, #ff4e50 100%);
-            font-family: 'Poppins', sans-serif;
-            padding: 1rem 0;
-        }
-        .navbar {
-            background: transparent !important;
-        }
-        .navbar-brand {
-            color: white !important;
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-        .typing-text {
-            border-right: 2px solid #fff;
-            padding-right: 5px;
-            animation: blink 0.75s step-end infinite;
-            color: white;
-        }
-        .shopping-icon {
-            color: white;
-            font-size: 1.8rem;
-            margin-right: 0.8rem;
-        }
-        @keyframes blink {
-            from, to { border-color: transparent }
-            50% { border-color: #fff; }
-        }
-        .navbar-nav .nav-link {
-            color: white !important;
-            margin: 0 1rem;
-            transition: all 0.3s ease;
-        }
-        .navbar-nav .nav-link:hover {
-            transform: translateY(-2px);
-        }
-    </style>
+
 </head>
 <body>
-    <header class="header-main">
+    <header class="header-main" style="">
         <nav class="navbar navbar-expand-lg">
             <div class="container">
                 <a class="navbar-brand d-flex align-items-center" href="index.html">
-                    <i class="fas fa-shopping-bag shopping-icon"></i>
+                    <i class="fas fa-shopping-bag shopping-icon"></i>|
                     <span class="typing-text" id="brand-text"></span>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -63,13 +26,18 @@
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
-                            <a class="nav-link" href="#"><i class="fas fa-home"></i> Home</a>
+                            <a class="nav-link" href="index.html"><i class="fas fa-home"></i> Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#"><i class="fas fa-store"></i> Shop</a>
+                            <a class="nav-link" href="index2.html"><i class="fas fa-store"></i> Shop</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#"><i class="fas fa-info-circle"></i> About</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link border rounded px-4 py-1 pt-2 pb-2" href="login.html" style="border-width:2px;">
+                                <i class="fas fa-sign-in-alt"></i> Login / Register
+                            </a>
                         </li>
                     </ul>
                 </div>
@@ -78,5 +46,6 @@
     </header>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/header.js"></script>
 </body>
 </html></li>

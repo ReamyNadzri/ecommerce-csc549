@@ -1,79 +1,129 @@
+<?php
+// Step 1: Connect to the database
+require 'config/connection.php'; //
+
+// Initialize product variable
+$product = null;
+
+// Step 2: Get the Product ID from the URL
+// Check if 'product_id' is set in the URL (e.g., items.php?product_id=123)
+if (isset($_GET['product_id'])) {
+    $productId = $_GET['product_id'];
+
+    // Step 3: Fetch the full product details from the database
+    // Using a prepared statement is the SAFE way to do this!
+    $sql = "SELECT * FROM products WHERE ProductID = ?";
+    $stmt = $conn->prepare($sql);
+
+    if ($stmt) {
+        // Bind the product ID to the placeholder
+        $stmt->bind_param("s", $productId);
+
+        // Execute the query
+        $stmt->execute();
+
+        // Get the result
+        $result = $stmt->get_result();
+
+        // Fetch the product data into an associative array
+        if ($result->num_rows > 0) {
+            $product = $result->fetch_assoc();
+        }
+
+        $stmt->close();
+    }
+}
+
+// Step 4: Prepare variables for display
+// If a product was found, use its data. Otherwise, use default values.
+if ($product) {
+    $mainName = htmlspecialchars($product['BrandName'] . ' (' . $product['Flavour'] . ')');
+    $price = number_format((float)$product['PriceMYR'], 2);
+    $imagePath = htmlspecialchars($product['ImagePath']);
+    // Note: 'weight' isn't in the database, so we'll leave a placeholder.
+    $weight = '150g'; // Example placeholder
+} else {
+    // Default values if no product is found or no ID is given
+    $mainName = "Product Not Found";
+    $price = "0.00";
+    $imagePath = 'sources/placeholder.png'; // A default placeholder image
+    $weight = 'N/A';
+}
+
+$conn->close();
+?>
 <!DOCTYPE html>
 <html lang="en">
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/w3-css/4.1.0/w3.min.css">
-        <link href="https://fonts.cdnfonts.com/css/product-sans" rel="stylesheet">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="css/items.css" />
-        <link rel="stylesheet" href="css/index.css" />
-        
-        <title>AF Platform</title>
-    
-        <header class="header-main" style="">
-            <nav class="navbar navbar-expand-lg">
-                <div class="container">
-                    <a class="navbar-brand d-flex align-items-center" href="index.html">
-                        <i class="fas fa-shopping-bag shopping-icon"></i>
-                        <span class="typing-text" id="brand-text"></span>
-                    </a>
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                    <div class="collapse navbar-collapse" id="navbarNav">
-                        <ul class="navbar-nav ms-auto">
-                            <li class="nav-item">
-                                <a class="nav-link" href="index.html"><i class="fas fa-home"></i> Home</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="index2.html"><i class="fas fa-store"></i> Shop</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#"><i class="fas fa-info-circle"></i> About</a>
-                            </li>
-                        </ul>
-                    </div>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/w3-css/4.1.0/w3.min.css">
+    <link href="https://fonts.cdnfonts.com/css/product-sans" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/items.css" />
+    <link rel="stylesheet" href="css/index.css" />
+
+    <title>AF Platform - <?php echo $mainName; ?></title>
+
+    <header class="header-main" style="">
+        <nav class="navbar navbar-expand-lg">
+            <div class="container">
+                <a class="navbar-brand d-flex align-items-center" href="index.php">
+                    <i class="fas fa-shopping-bag shopping-icon"></i>
+                    <span class="typing-text" id="brand-text"></span>
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="index.php"><i class="fas fa-home"></i> Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#"><i class="fas fa-store"></i> Shop</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#"><i class="fas fa-info-circle"></i> About</a>
+                        </li>
+                    </ul>
                 </div>
-            </nav>
-        </header>
-    
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-        <script src="js/header.js"></script>
-    
+            </div>
+        </nav>
+    </header>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/header.js"></script>
+
     <script>
+        // This JS redirects if the page is opened directly without a product_id
         window.onload = function() {
             if (!window.location.search) {
-                window.location.href = 'index.html';
+                window.location.href = 'index.php'; //
             }
         };
     </script>
-    
-
 </head>
-<body>
-   
 
-    
+<body>
     <div class="container mt-2" style="max-width: 1000px;">
-        <a href="index.html" class="back-button-top-left">
+        <a href="index.php" class="back-button-top-left">
             <i class="bi bi-arrow-left-short" style="font-size: 1rem;"></i> Kembali
         </a>
-        
+
         <div class="main-container bg-light">
             <div class="row mt-2 ">
                 <div class="col-md-5 product-image-container">
-                    <img id="productImage" class="enlarge-image" alt="Product Image">
+                    <img id="productImage" class="enlarge-image" alt="Product Image" src="<?php echo $imagePath; ?>">
                     <div class="thumbnail-container row mt-4">
                         <div class="col">
-                            <img id="smallimage" class="img-thumbnail" width="130" onclick="changeImage('back')" alt="Image 1">
+                            <img id="smallimage" class="img-thumbnail" width="130" onclick="changeImage('<?php echo $imagePath; ?>')" alt="Image 1" src="<?php echo $imagePath; ?>">
                         </div>
                         <div class="col">
                             <img src="sources/nutrisinasilemak.webp" class="img-thumbnail" width="130" onclick="changeImage('sources/nutrisinasilemak.webp')" alt="Image 2">
@@ -89,13 +139,13 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-md-7 product-details-container">
                     <div class="product-title">
-                        <h2 id="main-name">Unknown Item</h2>
+                        <h2 id="main-name"><?php echo $mainName; ?></h2>
                         <small id="text-muted"><i>by reamynadzri</i></small>
                     </div>
-                    
+
                     <div class="details-section">
                         <p class="section-title">Maklumat Pemakanan</p>
                         <div class="row">
@@ -104,36 +154,36 @@
                                 <p>Masa Hidangan</p>
                             </div>
                             <div class="col-md-8">
-                                <p id="weight"> ???? </p>
+                                <p id="weight"><?php echo $weight; ?></p>
                                 <p>8 Minit</p>
                             </div>
                         </div>
-                        
+
                         <hr>
-                        
+
                         <form id="orderForm">
-                            <input type="text" id="productName" hidden>
-                            <input type="text" id="productPrice" hidden>
-                            
+                            <input type="text" id="productName" value="<?php echo $mainName; ?>" hidden>
+                            <input type="text" id="productPrice" value="<?php echo $price; ?>" hidden>
+
                             <p class="section-title">Maklumat Peribadi</p>
                             <div class="row mb-3">
                                 <div class="col-12 mb-2">
                                     <input type="text" class="form-control" id="customerName" placeholder="Nama" required>
                                 </div>
                                 <div class="col-12">
-                                    <input type="tel" class="form-control" id="phoneNumber" 
-                                           pattern="01[0-9]{8,9}" 
-                                           title="Please enter a valid phone number (10-11 digits)"
-                                           placeholder="No. Telefon (e.g., 0123456789)" 
-                                           maxlength="11"
-                                           oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                                           required>
+                                    <input type="tel" class="form-control" id="phoneNumber"
+                                        pattern="01[0-9]{8,9}"
+                                        title="Please enter a valid phone number (10-11 digits)"
+                                        placeholder="No. Telefon (e.g., 0123456789)"
+                                        maxlength="11"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                                        required>
                                     <small class="text-muted">Phone number must be 10-11 digits without spaces or special characters</small>
                                 </div>
                             </div>
-                            
+
                             <hr>
-                            
+
                             <p class="section-title">Maklumat Pembelian</p>
                             <p>Pilih Jenis</p>
                             <div class="row mb-3 w3-margin-left">
@@ -146,13 +196,13 @@
                                     <label class="form-check-label" for="cookNo"> Tidak Dimasak</label>
                                 </div>
                             </div>
-                            
+
                             <hr>
-                            
-                            <p>Pilih Penghantaran <i class="bi bi-info-circle text-primary" 
-                                data-bs-toggle="popover" 
-                                data-bs-trigger="hover focus" 
-                                data-bs-content="Pickup Standard: K204 | Pickup Sutera: Depan Pejabat Kolej"></i></p>
+
+                            <p>Pilih Penghantaran <i class="bi bi-info-circle text-primary"
+                                    data-bs-toggle="popover"
+                                    data-bs-trigger="hover focus"
+                                    data-bs-content="Pickup Standard: K204 | Pickup Sutera: Depan Pejabat Kolej"></i></p>
                             <div class="row mb-3 w3-margin-left">
                                 <div class="col-md-6 form-check">
                                     <input class="form-check-input" type="radio" name="delivery" id="pickupStandard" value="pickup" onclick="updateBuyButton(); toggleRoomNumber()" checked>
@@ -177,26 +227,25 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <hr>
-                            
+
                             <p class="section-title">Cara Pembayaran<br><small><i>Jenis pembayaran hanya melalui e-wallet sahaja.</i></small></p>
                             <div class="row mb-3 w3-margin-left">
                                 <div class="col-md-6 form-check">
                                     <input class="form-check-input" type="radio" name="payment" id="paymentCash" value="cash" onclick="togglePaymentOptions()" disabled>
-                                    <label class="form-check-label" for="paymentCash"> Cash 
-                                        <i class="bi bi-info-circle text-primary" 
-                                           data-bs-toggle="popover" 
-                                           data-bs-trigger="hover focus" 
-                                           data-bs-content="Cash payment is currently unavailable."></i>
+                                    <label class="form-check-label" for="paymentCash"> Cash
+                                        <i class="bi bi-info-circle text-primary"
+                                            data-bs-toggle="popover"
+                                            data-bs-trigger="hover focus"
+                                            data-bs-content="Cash payment is currently unavailable."></i>
                                     </label>
                                 </div>
 
                                 <script>
-                                    // Initialize Bootstrap popovers
-                                    document.addEventListener('DOMContentLoaded', function () {
+                                    document.addEventListener('DOMContentLoaded', function() {
                                         var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-                                        var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+                                        var popoverList = popoverTriggerList.map(function(popoverTriggerEl) {
                                             return new bootstrap.Popover(popoverTriggerEl);
                                         });
                                     });
@@ -207,7 +256,7 @@
                                 </div>
 
                                 <div id="eWalletOptions" class="col-12 mt-3">
-                                    
+
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="payment" id="eWalletTouchNGo" value="touch_n_go" onclick="showQRCode('sources/qrtng.jpg')">
                                         <label class="form-check-label" for="eWalletTouchNGo"> Touch n Go E Wallet</label>
@@ -217,7 +266,8 @@
                                         <label class="form-check-label" for="eWalletDuitNow"> Duit Now QR</label>
                                     </div>
                                     <div id="qrCodeContainer" class="mt-3" style="display: none;">
-                                        <img id="qrCodeImage" src="" alt="QR Code" style="width:200px; cursor: pointer;" onclick="enlargeImage(this)"><hr>
+                                        <img id="qrCodeImage" src="" alt="QR Code" style="width:200px; cursor: pointer;" onclick="enlargeImage(this)">
+                                        <hr>
 
                                         <a href="https://payment.tngdigital.com.my/sc/bDLn8K4vWL" class="tng-button">
                                             <div class="tng-logo">
@@ -231,15 +281,12 @@
                                     <small class="text-muted">Upload the receipt here after making the payment</small>
 
                                     <script>
-                                        
-
-
                                         function togglePaymentOptions() {
                                             const eWalletOptions = document.getElementById('eWalletOptions');
                                             const paymentProof = document.getElementById('paymentProof');
                                             if (document.getElementById('paymentEWallet').checked) {
                                                 eWalletOptions.style.display = 'block';
-                                                paymentProof.required = true;                                          
+                                                paymentProof.required = true;
                                             } else {
                                                 eWalletOptions.style.display = 'none';
                                                 paymentProof.required = false;
@@ -286,7 +333,7 @@
                             </div>
 
                             <hr>
-                            
+
                             <div class="row">
                                 <div class="col-md-6 quantity-control">
                                     <button class="quantity-btn" type="button" onclick="decreaseQuantity()">-</button>
@@ -296,28 +343,21 @@
                             </div>
                             <div class="row mt-3">
                                 <div class="col-md-6 pt-2">
-                                    <button class="buy-btn" type="submit" id="buyButton" style="">Beli - N/A</button>
+                                    <button class="buy-btn" type="submit" id="buyButton" style="">Beli - RM <?php echo $price; ?></button>
                                 </div>
                                 <div class="col-md-6 pt-2">
                                     <button class="buy-btn" type="button" style="background-color: lightslategray; cursor: not-allowed;" disabled>Add to Cart</button>
                                 </div>
-                                <script>
-                                    document.querySelector('.cart-btn').addEventListener('mouseover', function() {
-                                        document.getElementById('message').textContent = 'This button is not available';
-                                    });
-                                </script>
-                            </div>     
-                       
-                            
-                            <div class="w3-panel w3-pale-red w3-leftbar w3-border-red mt-3" id="message" >Error Testing</div>
+                            </div>
+
+                            <div class="w3-panel w3-pale-red w3-leftbar w3-border-red mt-3" id="message">Error Testing</div>
                         </form>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-                
-                
+
     <script src="js/script.js"></script>
 </body>
 <footer class="mt-5">
@@ -329,8 +369,9 @@
                     <p class="text-muted mb-1">© 2025 AF Studios. All rights reserved.</p>
                     <small class="text-muted">Made with <i class="bi bi-heart-fill text-danger"></i> for our customers</small>
                 </div>
-            </div>  
+            </div>
         </div>
     </div>
 </footer>
+
 </html>

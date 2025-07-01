@@ -2,7 +2,6 @@
 // Start session - good practice for when you add login later
 session_start();
 
-// --- API-POWERED RECOMMENDATIONS (Logic from index.php) ---
 $api_base_url = 'http://127.0.0.1:5000';
 $recommended_products = [];
 $api_error = false;
@@ -25,8 +24,6 @@ if ($json_data === false) {
     }
 }
 
-
-// --- DATABASE-POWERED PRODUCTS FOR Browse (Logic from index.php) ---
 require_once 'config/connection.php';
 
 $browse_products = []; // Array for all browseable products

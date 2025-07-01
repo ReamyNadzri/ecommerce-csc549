@@ -5,7 +5,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from implicit.als import AlternatingLeastSquares
 from scipy.sparse import csr_matrix
-import sqlalchemy  # Import the new library
+import sqlalchemy
 import warnings
 import logging
 import datetime
@@ -20,18 +20,23 @@ class FoodRecommendationSystem:
         logger.info("Initializing Food Recommendation System...")
         self.db_engine = self.create_db_engine()
         
-        # Initialize attributes that will be created later
+        # Initialize attributes
         self.products_df = pd.DataFrame()
         self.users_df = pd.DataFrame()
         self.purchases_df = pd.DataFrame()
         self.views_df = pd.DataFrame()
+        
+        ### NEW: Dictionaries to map string UserIDs to integer indices for the model ###
+        self.user_id_to_idx = {}
+        self.idx_to_user_id = {}
+
         self.als_model = None
         self.user_item_matrix = None
         self.user_item_sparse = None
         self.content_similarity_matrix = None
         self.weights = {'view': 1.0, 'purchase': 5.0}
 
-        # Load data and train models if the database connection is successful
+        # Load data and train models
         if self.db_engine:
             self.load_all_data()
             if not self.products_df.empty:
@@ -56,68 +61,55 @@ class FoodRecommendationSystem:
             return None
 
     def load_all_data(self):
-        """Load all data from the database and process it correctly."""
+        """Load all data from the database."""
         logger.info("Loading all data from database...")
         try:
-            # Load raw data from the database
             self.products_df = pd.read_sql_query("SELECT * FROM products WHERE IsActive = 1", self.db_engine)
             self.users_df = pd.read_sql_query("SELECT * FROM users", self.db_engine)
-            """ self.purchases_df = pd.read_sql_query("SELECT o.UserID, oi.ProductID, oi.Quantity FROM orders o JOIN order_items oi ON o.OrderID = oi.OrderID WHERE o.OrderStatus = 'Paid'", self.db_engine) """
             self.purchases_df = pd.read_sql_query("SELECT o.UserID, o.OrderDate, oi.ProductID, oi.Quantity FROM orders o JOIN order_items oi ON o.OrderID = oi.OrderID WHERE o.OrderStatus = 'Paid'", self.db_engine)
             self.views_df = pd.read_sql_query("SELECT UserID, ProductID, ViewTimestamp FROM product_views", self.db_engine)
             
             logger.info(f"Loaded {len(self.purchases_df)} purchase records and {len(self.views_df)} view records from DB.")
 
-            # --- CORRECTED DATA CONVERSION ---
-            # Convert ID columns to numeric types for all dataframes
-            for df in [self.products_df, self.users_df, self.purchases_df, self.views_df]:
-                for col in ['ProductID', 'UserID']:
-                    if col in df.columns:
-                        # Convert to number, forcing errors into NaN (Not a Number)
-                        df[col] = pd.to_numeric(df[col], errors='coerce')
-            
-            # Drop rows where the key IDs are NaN (meaning they couldn't be converted)
-            self.products_df.dropna(subset=['ProductID'], inplace=True)
-            self.users_df.dropna(subset=['UserID'], inplace=True)
-            self.purchases_df.dropna(subset=['UserID', 'ProductID'], inplace=True)
-            self.views_df.dropna(subset=['UserID', 'ProductID'], inplace=True)
+            ### MODIFIED: Only clean and convert ProductID, leaving UserID as a string ###
+            for df in [self.products_df, self.purchases_df, self.views_df]:
+                if 'ProductID' in df.columns:
+                    df['ProductID'] = pd.to_numeric(df['ProductID'], errors='coerce')
+                    df.dropna(subset=['ProductID'], inplace=True)
+                    df['ProductID'] = df['ProductID'].astype(int)
 
-            # Ensure IDs are integers for matrix operations
-            for df in [self.products_df, self.users_df, self.purchases_df, self.views_df]:
-                for col in ['ProductID', 'UserID']:
-                    if col in df.columns:
-                        df[col] = df[col].astype(int)
-
-            logger.info(f"After cleaning, there are {len(self.purchases_df)} valid purchase records.")
-            
         except Exception as e:
             logger.error(f"FATAL: Error during data loading. Error: {e}")
 
     def create_interaction_matrix(self):
-        """Create user-item interaction matrix with weighted implicit feedback"""
+        """Create user-item interaction matrix and UserID mappings."""
         try:
             interactions = []
-            
             if not self.purchases_df.empty:
-                purchase_interactions = self.purchases_df.groupby(['UserID', 'ProductID']).agg({'Quantity': 'sum'}).reset_index()
-                purchase_interactions['score'] = purchase_interactions['Quantity'] * self.weights['purchase']
-                interactions.append(purchase_interactions[['UserID', 'ProductID', 'score']])
-            
+                interactions.append(self.purchases_df.rename(columns={'Quantity': 'score'})[['UserID', 'ProductID', 'score']].assign(score=lambda x: x['score'] * self.weights['purchase']))
             if not self.views_df.empty:
-                view_interactions = self.views_df.groupby(['UserID', 'ProductID']).size().reset_index(name='view_count')
-                view_interactions['score'] = view_interactions['view_count'] * self.weights['view']
-                interactions.append(view_interactions[['UserID', 'ProductID', 'score']])
+                view_interactions = self.views_df.groupby(['UserID', 'ProductID']).size().reset_index(name='score')
+                interactions.append(view_interactions.assign(score=lambda x: x['score'] * self.weights['view']))
             
             if interactions:
                 all_interactions = pd.concat(interactions, ignore_index=True)
                 combined_interactions = all_interactions.groupby(['UserID', 'ProductID'])['score'].sum().reset_index()
                 
-                self.user_item_matrix = combined_interactions.pivot(index='UserID', columns='ProductID', values='score').fillna(0)
+                ### NEW: Create the mapping from string UserID to integer index ###
+                unique_user_ids = combined_interactions['UserID'].unique()
+                self.user_id_to_idx = {user_id: i for i, user_id in enumerate(unique_user_ids)}
+                self.idx_to_user_id = {i: user_id for user_id, i in self.user_id_to_idx.items()}
+                
+                # Map string UserIDs to their new integer index
+                combined_interactions['user_idx'] = combined_interactions['UserID'].map(self.user_id_to_idx)
+
+                ### MODIFIED: Pivot using the new integer 'user_idx' ###
+                self.user_item_matrix = combined_interactions.pivot(index='user_idx', columns='ProductID', values='score').fillna(0)
                 self.user_item_sparse = csr_matrix(self.user_item_matrix.values)
                 
-                logger.info(f"User-item matrix created: {self.user_item_matrix.shape}")
+                logger.info(f"User-item matrix created: {self.user_item_matrix.shape} with {len(self.user_id_to_idx)} unique users.")
             else:
-                logger.warning("No user interactions found in the database to build a model.")
+                logger.warning("No user interactions found to build a model.")
                 self.user_item_matrix = pd.DataFrame()
                 
         except Exception as e:
@@ -125,10 +117,10 @@ class FoodRecommendationSystem:
             self.user_item_matrix = pd.DataFrame()
     
     def train_als_model(self):
-        """Train ALS (Alternating Least Squares) model"""
+        """Train ALS model."""
         try:
             if self.user_item_sparse is None or self.user_item_sparse.shape[0] == 0:
-                logger.warning("No interaction data available for training ALS model.")
+                logger.warning("No interaction data for training ALS model.")
                 return
             
             self.als_model = AlternatingLeastSquares(factors=64, regularization=0.1, iterations=50, alpha=40, random_state=42, use_gpu=False)
@@ -138,72 +130,56 @@ class FoodRecommendationSystem:
             
         except Exception as e:
             logger.error(f"Error training ALS model: {str(e)}")
-            self.als_model = None
-    
+
     def create_content_features(self):
-        """Create content-based features for cold start and hybrid recommendations"""
+        """Create content-based features."""
         try:
             if self.products_df.empty:
-                logger.warning("No product data available to create content features.")
+                logger.warning("No product data for content features.")
                 return
             
-            self.products_df['combined_features'] = (
-                self.products_df['BrandName'].fillna('') + ' ' + self.products_df['Flavour'].fillna('') + ' ' +
-                self.products_df['ProductType'].fillna('') + ' ' + self.products_df['Description'].fillna('')
-            )
+            ### MODIFIED: Convert all columns to string before joining ###
+            self.products_df['combined_features'] = self.products_df.astype(str).fillna('').agg(' '.join, axis=1)
             
-            tfidf = TfidfVectorizer(max_features=500, stop_words='english', ngram_range=(1, 2), min_df=1)
+            tfidf = TfidfVectorizer(max_features=500, stop_words='english')
             self.product_features = tfidf.fit_transform(self.products_df['combined_features'])
             self.content_similarity_matrix = cosine_similarity(self.product_features)
             logger.info(f"Content features created: {self.product_features.shape}")
             
         except Exception as e:
             logger.error(f"Error creating content features: {str(e)}")
-            self.content_similarity_matrix = None
-    
-    def get_als_recommendations(self, user_id, n_recommendations=10):
-        """Get recommendations using ALS collaborative filtering"""
+
+    ### MODIFIED: Function now accepts the integer user_idx ###
+    def get_als_recommendations(self, user_idx, n_recommendations=10):
+        """Get recommendations using ALS from a user's integer index."""
         try:
-            if (self.als_model is None or self.user_item_matrix.empty or user_id not in self.user_item_matrix.index):
-                return []
-            
-            user_idx = self.user_item_matrix.index.get_loc(user_id)
+            if self.als_model is None: return []
             recommendations = self.als_model.recommend(user_idx, self.user_item_sparse[user_idx], N=n_recommendations, filter_already_liked_items=True)
-            
-            # The corrected code using zip()
-            item_ids, confidence_scores = recommendations
-            return [(self.user_item_matrix.columns[item_id], float(score)) for item_id, score in zip(item_ids, confidence_scores)]
-            
+            item_ids, scores = recommendations
+            return [(self.user_item_matrix.columns[item_id], float(score)) for item_id, score in zip(item_ids, scores)]
         except Exception as e:
             logger.error(f"Error getting ALS recommendations: {str(e)}")
             return []
     
     def get_content_recommendations(self, product_id, n_recommendations=10):
-        """Get content-based recommendations for similar products"""
+        """Get content-based recommendations for similar products."""
         try:
             if self.content_similarity_matrix is None: return []
-            
             product_idx_series = self.products_df[self.products_df['ProductID'] == product_id].index
             if product_idx_series.empty: return []
             
             product_idx = product_idx_series[0]
             similarity_scores = list(enumerate(self.content_similarity_matrix[product_idx]))
             similar_products = sorted(similarity_scores, key=lambda x: x[1], reverse=True)[1:n_recommendations+1]
-            
             return [(self.products_df.iloc[i[0]]['ProductID'], i[1]) for i in similar_products]
-            
         except Exception as e:
             logger.error(f"Error getting content recommendations: {str(e)}")
             return []
-    
+
     def get_popular_recommendations(self, n_recommendations=10, category=None):
-        """Get popular items based on purchase frequency and recency"""
+        """Get popular items based on purchase frequency and recency."""
         try:
-            if self.purchases_df.empty:
-                logger.warning("No purchase data for popularity. Falling back to random items.")
-                if self.products_df.empty: return []
-                popular_products = self.products_df.sample(min(n_recommendations, len(self.products_df)))
-                return [(row['ProductID'], 1.0) for _, row in popular_products.iterrows()]
+            if self.purchases_df.empty: return []
             
             now = datetime.datetime.now()
             popularity_scores = {}
@@ -212,106 +188,86 @@ class FoodRecommendationSystem:
                 score = purchase['Quantity'] * recency_weight
                 popularity_scores[purchase['ProductID']] = popularity_scores.get(purchase['ProductID'], 0) + score
             
-            sorted_products = sorted(popularity_scores.items(), key=lambda x: x[1], reverse=True)
-            return sorted_products[:n_recommendations]
-            
+            return sorted(popularity_scores.items(), key=lambda x: x[1], reverse=True)[:n_recommendations]
         except Exception as e:
             logger.error(f"Error getting popular recommendations: {str(e)}")
             return []
     
-    def get_hybrid_recommendations(self, user_id, n_recommendations=10):
-        """Get hybrid recommendations combining ALS and content-based approaches"""
+    ### MODIFIED: Function now accepts user_idx but also looks up original string ID ###
+    def get_hybrid_recommendations(self, user_idx, n_recommendations=10):
+        """Get hybrid recommendations from a user's integer index."""
         try:
             recommendations = {}
-            
-            als_recs = self.get_als_recommendations(user_id, n_recommendations)
+            als_recs = self.get_als_recommendations(user_idx, n_recommendations)
             for pid, score in als_recs: recommendations[pid] = recommendations.get(pid, 0) + score * 0.7
             
             if not self.purchases_df.empty:
-                user_purchases = self.purchases_df[self.purchases_df['UserID'] == user_id]['ProductID'].tolist()
-                for pid in user_purchases[-3:]:
-                    content_recs = self.get_content_recommendations(pid, 5)
-                    for rec_pid, sim in content_recs: recommendations[rec_pid] = recommendations.get(rec_pid, 0) + sim * 0.2
+                # Get original string ID from the index to look up purchases
+                string_user_id = self.idx_to_user_id.get(user_idx)
+                if string_user_id:
+                    user_purchases = self.purchases_df[self.purchases_df['UserID'] == string_user_id]['ProductID'].tolist()
+                    for pid in user_purchases[-3:]:
+                        content_recs = self.get_content_recommendations(pid, 5)
+                        for rec_pid, sim in content_recs: recommendations[rec_pid] = recommendations.get(rec_pid, 0) + sim * 0.2
             
             popular_recs = self.get_popular_recommendations(n_recommendations)
             for pid, pop in popular_recs: recommendations[pid] = recommendations.get(pid, 0) + pop * 0.1
             
-            sorted_recs = sorted(recommendations.items(), key=lambda x: x[1], reverse=True)
-            
-            if len(sorted_recs) < n_recommendations:
-                existing_ids = {pid for pid, _ in sorted_recs}
-                missing_popular = [item for item in popular_recs if item[0] not in existing_ids]
-                sorted_recs.extend(missing_popular)
-
-            return sorted_recs[:n_recommendations]
-            
+            return sorted(recommendations.items(), key=lambda x: x[1], reverse=True)[:n_recommendations]
         except Exception as e:
             logger.error(f"Error getting hybrid recommendations: {str(e)}")
             return self.get_popular_recommendations(n_recommendations)
     
-    def get_cold_start_recommendations(self, user_id, n_recommendations=10):
-        """Handle cold start problem for new users by serving popular items."""
-        logger.info(f"Cold start for user {user_id}. Serving popular recommendations.")
+    def get_cold_start_recommendations(self, n_recommendations=10):
+        """Handle cold start by serving popular items."""
         return self.get_popular_recommendations(n_recommendations)
     
     def get_product_details(self, product_recommendations):
-        """Get detailed product information with scores. This function is now safe."""
+        """Get detailed product information with scores."""
         try:
-            if not product_recommendations or self.products_df.empty:
-                return []
-            
-            # --- FIX #2: SAFE, READ-ONLY LOGIC ---
-            # We know ProductID in products_df is an integer from load_data()
+            if not product_recommendations or self.products_df.empty: return []
             product_ids = [pid for pid, _ in product_recommendations]
             scores = {pid: score for pid, score in product_recommendations}
-            
-            # Find the matching products without changing the original dataframe
             products = self.products_df[self.products_df['ProductID'].isin(product_ids)].copy()
-            
-            # Add recommendation scores and maintain order
             products['recommendation_score'] = products['ProductID'].map(scores)
-            products = products.sort_values(by='recommendation_score', ascending=False)
-            
-            return products.to_dict('records')
-            
+            return products.sort_values(by='recommendation_score', ascending=False).to_dict('records')
         except Exception as e:
             logger.error(f"Error getting product details: {str(e)}")
             return []
 
-# Initialize the recommendation system
+# Initialize the system
 rec_system = FoodRecommendationSystem()
 
-# Flask API Routes
+# --- API Routes ---
 @app.route('/api/recommend/<user_id>')
 def recommend_for_user(user_id):
-    """Get recommendations for a specific user"""
+    """Get recommendations for a specific user using their string ID."""
     try:
-        user_id_int = int(user_id)
+        ### MODIFIED: No longer converting user_id to int ###
         n_recommendations = request.args.get('n', 10, type=int)
         
-        # We now check if the matrix is not None before trying to use it.
-        user_exists = (rec_system.user_item_matrix is not None and
-                       not rec_system.user_item_matrix.empty and
-                       user_id_int in rec_system.user_item_matrix.index)
-        
-        if user_exists:
-            recommendations = rec_system.get_hybrid_recommendations(user_id_int, n_recommendations)
+        ### MODIFIED: Check if the string user_id exists in our mapping ###
+        if user_id in rec_system.user_id_to_idx:
+            # User exists, get their integer index for the model
+            user_idx = rec_system.user_id_to_idx[user_id]
+            recommendations = rec_system.get_hybrid_recommendations(user_idx, n_recommendations)
             rec_type = 'hybrid'
+            user_exists_in_model = True
         else:
-            # This part will now be reached correctly
-            recommendations = rec_system.get_cold_start_recommendations(user_id_int, n_recommendations)
+            # User is new or has no interactions (cold start)
+            recommendations = rec_system.get_cold_start_recommendations(n_recommendations)
             rec_type = 'cold_start (popular)'
+            user_exists_in_model = False
         
         products = rec_system.get_product_details(recommendations)
         
         return jsonify({
             'success': True,
             'user_id': user_id,
-            'user_exists_in_model': user_exists,
+            'user_exists_in_model': user_exists_in_model,
             'recommendation_type': rec_type,
             'recommendations': products
         })
-        
     except Exception as e:
         logger.error(f"Error in recommend_for_user: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500

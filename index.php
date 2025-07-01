@@ -6,9 +6,17 @@ $api_base_url = 'http://127.0.0.1:5000';
 $recommended_products = [];
 $api_error = false;
 
-// Set the user_id to 1
-$user_id = 1;
-$api_url = $api_base_url . '/api/recommend/' . $user_id . '?n=10';
+// Check if the user is logged in by looking for the session variable.
+if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
+    // The user IS logged in. Use their actual user_id.
+    $user_id = $_SESSION['user_id'];
+    $api_url = $api_base_url . '/api/recommend/' . $user_id . '?n=10';
+    $recommendation_title = "Recommended For You"; // Personalize the title
+} else {
+    // The user is NOT logged in (a guest).
+    // We'll get popular recommendations instead of personal ones.
+    $api_url = $api_base_url . '/api/popular?n=10';
+}
 
 // Call the Python API
 $json_data = @file_get_contents($api_url);

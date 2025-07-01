@@ -53,7 +53,9 @@ if ($result && $result->num_rows > 0) {
             'IsActive'       => $row['IsActive']
         );
     }
+    
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="en">

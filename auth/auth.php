@@ -9,7 +9,7 @@ session_start();
 // --- Include Database Connection ---
 // This line includes the database connection file, making the $conn variable available.
 require_once '../config/connection.php';
-include '../includes/header.php';
+// Do NOT include header.php here; include it after all PHP logic and redirects.
 
 // --- Initialize Message Variables ---
 // These variables will hold feedback messages for the user.
@@ -96,8 +96,8 @@ if (isset($_POST['login'])) {
                 $_SESSION['user_id'] = $user['UserID'];
                 $_SESSION['username'] = $user['Username'];
 
-                // --- Redirect to a protected page (e.g., dashboard) ---
-                header("Location: dashboard.php");
+                // REDIRECT BEFORE ANY OUTPUT!
+                header("Location: ../index.php");
                 exit();
             } else {
                 $login_message = '<div class="alert alert-danger">Invalid password.</div>';
@@ -111,6 +111,9 @@ if (isset($_POST['login'])) {
 
 // Close the database connection at the end of the script.
 $conn->close();
+
+// Now include the header, after all PHP logic and before HTML output.
+include '../includes/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">

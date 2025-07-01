@@ -35,17 +35,11 @@ if ($result && $result->num_rows > 0) {
             'IsActive'       => $row['IsActive']
         );
     }
+    
 }
+include 'includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-   
-<?php 
-include("includes/header.php");
-?>
-</head>
 
 <body class="bg-light" style="font-family: 'Poppins', sans-serif;">
 

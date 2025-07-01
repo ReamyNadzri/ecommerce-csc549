@@ -4,6 +4,8 @@
 // We're using your connection file which creates the $conn variable
 require_once 'config/connection.php'; //
 
+include 'includes/header.php';
+
 // --- Fetch Products and Build Structured Array ---
 $sql = "SELECT * FROM products WHERE IsActive = 1";
 
@@ -35,17 +37,11 @@ if ($result && $result->num_rows > 0) {
             'IsActive'       => $row['IsActive']
         );
     }
+    
 }
-?>
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-   
-<?php 
-include("includes/header.php");
 ?>
-</head>
+
 
 <body class="bg-light" style="font-family: 'Poppins', sans-serif;">
 

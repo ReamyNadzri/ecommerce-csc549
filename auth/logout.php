@@ -1,10 +1,14 @@
 <?php
 require_once '../config/connection.php';
 
+// Start the session
+session_start();
+
 // Clear all session data
 session_unset();
 session_destroy();
 
 // Redirect to home page
-redirect('../index.php');
+header('Location: ../index.php');
+exit;
 ?>

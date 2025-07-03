@@ -18,17 +18,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     switch ($_POST['action']) {
         case 'add_to_cart':
             $product_id = $_POST['product_id'];
+            // ### NEW: Get the quantity from the form, default to 1 ###
+            $quantity_to_add = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
+
+            // --- The rest is similar but uses the new quantity variable ---
             $brand_name = $_POST['brand_name'];
             $flavour = $_POST['flavour'];
             $price = (float)$_POST['price'];
             $image = $_POST['image'];
             $description = $_POST['description'] ?? '';
 
-            // Check if item already exists in cart
             $found = false;
             foreach ($_SESSION['cart'] as &$item) {
                 if ($item['product_id'] == $product_id) {
-                    $item['quantity']++;
+                    // ### MODIFIED: Instead of ++, we add the specified quantity ###
+                    $item['quantity'] += $quantity_to_add;
                     $found = true;
                     break;
                 }
@@ -42,12 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'price' => $price,
                     'image' => $image,
                     'description' => $description,
-                    'quantity' => 1
+                    // Use the specified quantity for new items too
+                    'quantity' => $quantity_to_add
                 ];
             }
 
             $response['success'] = true;
-            $response['message'] = 'Item added to cart';
+            $response['message'] = 'Item(s) added to cart!';
             $response['cart_count'] = array_sum(array_column($_SESSION['cart'], 'quantity'));
             break;
 
@@ -366,28 +371,31 @@ if ($result && $result->num_rows > 0) {
 
                     <div class="menu-container align-items-center bg-white shadow-sm" style="box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
                         <?php foreach ($browse_products as $product) : ?>
-                            <div class="scrollable-menu-item">
-                                <form method="get" action="backup/view_prod.php">
-                                    <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($product['ProductID'] ?? ''); ?>">
-                                        <a href="javascript:;" onclick="this.closest('form').submit();" style="text-decoration: none; color: inherit;">
-                                        <div class="food-image-container">
-                                            <img src="<?php echo htmlspecialchars($product['ImagePath'] ?? 'sources/placeholder.png'); ?>" alt="<?php echo htmlspecialchars($product['Flavour'] ?? ''); ?>" class="food-image card-img-top">
-                                            <?php if (!empty($product['DietaryTags'])): ?>
-                                                <div class="discount-badge"><?php echo htmlspecialchars($product['DietaryTags'] ?? ''); ?></div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div>
-                                            <h2 class="food-title mb-1"><?php echo htmlspecialchars($product['BrandName'] ?? ''); ?><br>(<?php echo htmlspecialchars($product['Flavour'] ?? ''); ?>)</h2>
-                                            <div class="food-price mb-1">
-                                                RM <?php echo htmlspecialchars(number_format((float)($product['PriceMYR'] ?? 0), 2)); ?>
-                                            </div>
-                                            <p class="food-description mb-0"><?php echo htmlspecialchars($product['Description'] ?? ''); ?></p>
-                                        </div>
-                                    </a>
-                                    <div class="d-flex align-items-center flex-wrap gap-2 mt-2">
-                                        <button type="submit" class="add-button ms-2" title="Buy Now">→</button>
+                            <div class="scrollable-menu-item"
+                                onclick="window.location.href='view_prod.php?product_id=<?php echo htmlspecialchars($product['ProductID'] ?? ''); ?>';"
+                                style="cursor: pointer;"
+                                title="View Product">
+
+                                <div class="food-image-container">
+                                    <img src="<?php echo htmlspecialchars($product['ImagePath'] ?? 'sources/placeholder.png'); ?>" alt="<?php echo htmlspecialchars($product['Flavour'] ?? ''); ?>" class="food-image card-img-top">
+                                    <?php if (!empty($product['DietaryTags'])) : ?>
+                                        <div class="discount-badge"><?php echo htmlspecialchars($product['DietaryTags'] ?? ''); ?></div>
+                                    <?php endif; ?>
+                                </div>
+                                <div>
+                                    <h2 class="food-title mb-1"><?php echo htmlspecialchars($product['BrandName'] ?? ''); ?><br>(<?php echo htmlspecialchars($product['Flavour'] ?? ''); ?>)</h2>
+                                    <div class="food-price mb-1">
+                                        RM <?php echo htmlspecialchars(number_format((float)($product['PriceMYR'] ?? 0), 2)); ?>
                                     </div>
-                                </form>
+                                    <p class="food-description mb-0"><?php echo htmlspecialchars($product['Description'] ?? ''); ?></p>
+                                </div>
+
+                                <div class="d-flex align-items-center flex-wrap gap-2 mt-2">
+
+                                    <button onclick="event.stopPropagation(); addToCart(<?php echo htmlspecialchars($product['ProductID'] ?? ''); ?>, '<?php echo htmlspecialchars($product['BrandName'] ?? ''); ?>', '<?php echo htmlspecialchars($product['Flavour'] ?? ''); ?>', <?php echo htmlspecialchars($product['PriceMYR'] ?? 0); ?>, '<?php echo htmlspecialchars($product['ImagePath'] ?? ''); ?>', '<?php echo htmlspecialchars($product['Description'] ?? ''); ?>')" class="add-button" title="Add to Cart">
+                                        <i class="bi bi-cart"></i>
+                                    </button>
+                                </div>
                             </div>
                         <?php endforeach; ?>
                     </div>

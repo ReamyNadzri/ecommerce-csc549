@@ -189,13 +189,9 @@ if ($result && $result->num_rows > 0) {
                     <div class="menu-container align-items-center bg-white shadow-sm" style="box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
                         <?php foreach ($browse_products as $product): ?>
                             <div class="scrollable-menu-item">
-                                <form method="get" action="items.php">
+                                <form method="get" action="backup/view_prod.php">
                                     <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($product['ProductID'] ?? ''); ?>">
-                                    <input type="hidden" name="brand_name" value="<?php echo htmlspecialchars($product['BrandName'] ?? ''); ?>">
-                                    <input type="hidden" name="flavour" value="<?php echo htmlspecialchars($product['Flavour'] ?? ''); ?>">
-                                    <input type="hidden" name="price" value="<?php echo htmlspecialchars($product['PriceMYR'] ?? ''); ?>">
-                                    <input type="hidden" name="image" value="<?php echo htmlspecialchars($product['ImagePath'] ?? ''); ?>">
-                                    <a href="javascript:;" onclick="this.closest('form').submit();" style="text-decoration: none; color: inherit;">
+                                        <a href="javascript:;" onclick="this.closest('form').submit();" style="text-decoration: none; color: inherit;">
                                         <div class="food-image-container">
                                             <img src="<?php echo htmlspecialchars($product['ImagePath'] ?? 'sources/placeholder.png'); ?>" alt="<?php echo htmlspecialchars($product['Flavour'] ?? ''); ?>" class="food-image card-img-top">
                                             <?php if (!empty($product['DietaryTags'])): ?>

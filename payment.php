@@ -1,23 +1,28 @@
 <?php
-// Set default values in case data is not passed
-$itemName = "Unknown Item";
-$price = 0.00;
-$quantity = 1; // For now, quantity is always 1
+session_start();
+require 'config/connection.php';
 
-// Check if data exists before using it
-if (isset($_GET['brand_name']) && isset($_GET['flavour'])) {
-    $itemName = htmlspecialchars($_GET['brand_name']) . ' (' . htmlspecialchars($_GET['flavour']) . ')';
+// Security check: only allow access via POST and if the cart is not empty
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['cart'])) {
+    header('Location: index.php');
+    exit();
 }
 
-if (isset($_GET['price'])) {
-    $price = (float)htmlspecialchars($_GET['price']);
+// Get data submitted from the review page (items.php)
+$customer_name = $_POST['customerName'] ?? 'Guest';
+$phone_number = $_POST['phoneNumber'] ?? '';
+$payment_method = $_POST['payment_method'] ?? 'touch_n_go'; // Default to TnG
+
+// Determine which QR code image to show based on the choice
+$qr_image_path = ($payment_method === 'duit_now') ? 'sources/qrduitnow.jpg' : 'sources/qrtng.jpg';
+
+// Get cart items and total price from the session
+$cart_items = $_SESSION['cart'];
+$total_price = 0;
+foreach ($cart_items as $item) {
+    $total_price += $item['price'] * $item['quantity'];
 }
-
-// Calculate total amount
-$totalAmount = $price * $quantity;
-
-// Generate a unique reference number (e.g., ORD-1687878787)
-$reference = "ORD-" . time();
+$price = number_format($total_price, 2);
 
 ?>
 <!DOCTYPE html>
@@ -25,63 +30,70 @@ $reference = "ORD-" . time();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AF Platform - Make Payment</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-    <link href="https://fonts.cdnfonts.com/css/product-sans" rel="stylesheet">
-    
-    <title>E-commerce Platform - Payment</title>
-
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top" style="height: 14vh; position: sticky; top: 0; z-index: 1020;">
-            <div class="container-fluid" style="width: 130vh;">
-                <a class="navbar-brand mx-auto" style="font-size: 2rem;" href="index.php">E-commerce Platform</a>
-                <btn class="btn btn-outline-success" type="button">Login</btn>
-            </div>
-        </nav>
-    </header>
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/items.css" />
+    <link rel="stylesheet" href="css/index.css" />
     <style>
-        button{
-            width: 100%;
-        }
+        /* Paste the same custom CSS from items.php here for consistency */
     </style>
+    <?php include 'includes/header.php'; ?>
 </head>
 <body>
-    <div class="container mt-2" style="width: 140vh">
-        <div class="row border w3-round-xlarge bg-light shadow-sm">
-            <div class="col-md-5 d-flex flex-column">
-                <div class="w3-margin w3-padding w3-round-xlarge bg-white shadow-sm">
-                    <h2 class="text-primary">Payment Details</h2>
-                    <p>Scan the QR code below to make your payment. Make sure the amount and reference number are correct.</p>
-                </div>
+    <div class="container mt-4 mb-5" style="max-width: 1200px;">
+        <div class="checkout-steps">
+            <div class="step">
+                <div class="step-circle">1</div> Review Details
             </div>
-            <div class="col-md-7"></div>
-            <div class="col-md-5 d-flex flex-column align-items-center">
-                <img id="productImage" src="sources/qrduitnow.jpg" class="card-img-top enlarge-image mb-auto w3-padding" alt="DuitNow QR" >
+            <div class="step-divider"></div>
+            <div class="step active">
+                <div class="step-circle">2</div> Make Payment
             </div>
-            <div class="col-md-7 d-flex flex-column">   
-                <div class="w3-margin w3-padding w3-round-xlarge bg-white shadow-sm">
-                    <h3 class="text-primary">Receipt</h3>
-                    <p><strong>Item:</strong> <?php echo $itemName; ?></p>
-                    <p><strong>Quantity:</strong> <?php echo $quantity; ?></p>
-                    <p><strong>Price per item:</strong> RM <?php echo number_format($price, 2); ?></p>
-                    <hr>
-                    <p><strong>Total Amount:</strong> RM <?php echo number_format($totalAmount, 2); ?></p>
-                    <p><strong>Reference:</strong> <?php echo $reference; ?></p>
+        </div>
+
+        <form action="process_order.php" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="customerName" value="<?php echo htmlspecialchars($customer_name); ?>">
+            <input type="hidden" name="phoneNumber" value="<?php echo htmlspecialchars($phone_number); ?>">
+            <input type="hidden" name="payment_method" value="<?php echo htmlspecialchars($payment_method); ?>">
+            <input type="hidden" name="total_price" value="<?php echo $total_price; ?>">
+            <input type="hidden" name="cart_data" value='<?php echo json_encode($cart_items); ?>'>
+
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card shadow-sm">
+                         </div>
                 </div>
-                <div class="col-md-7 d-flex flex-column">   
-                    <div class="w3-margin w3-padding w3-round-xlarge bg-white shadow-sm">
-                        <p><strong>Please Scan to Pay</strong></p>
-                        <p>Amount: RM <?php echo number_format($totalAmount, 2); ?></p>
-                        <p>Reference: <?php echo $reference; ?></p>
+
+                <div class="col-lg-5">
+                    <div class="card shadow-sm">
+                        <div class="card-body p-4 text-center">
+                            <h4 class="mb-3">
+                                <i class="bi bi-qr-code-scan card-header-icon text-primary"></i>
+                                Scan to Pay
+                            </h4>
+                            <p>Please scan the QR code below to pay a total of <strong>RM <?php echo $price; ?></strong>.</p>
+                            
+                            <img src="<?php echo $qr_image_path; ?>" alt="Payment QR Code" class="img-fluid rounded my-3" style="max-width: 250px;">
+                            
+                            <div class="text-start">
+                                <label for="paymentProof" class="form-label fw-bold">Upload Payment Receipt</label>
+                                <input type="file" class="form-control" id="paymentProof" name="paymentProof" accept="image/*" required>
+                                <small class="text-muted">Please upload a screenshot of your successful transaction.</small>
+                            </div>
+                            
+                            <div class="d-grid mt-4">
+                                <button class="btn btn-success btn-lg" type="submit">
+                                    I Have Paid, Complete Order <i class="bi bi-check-circle-fill"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="w3-margin col-md-12 d-flex justify-content-center mt-3" style="width:  30vh;">
-                    <button class="btn btn-primary">Confirm Payment</button>
-                </div>
             </div>
-            
-        </div>       
+        </form>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

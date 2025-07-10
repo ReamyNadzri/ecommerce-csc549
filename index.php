@@ -2,6 +2,8 @@
 // Start session - good practice for when you add login later
 session_start();
 
+
+
 $api_base_url = 'http://127.0.0.1:5000';
 $recommended_products = [];
 $api_error = false;
@@ -108,7 +110,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Get cart count
-$cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
+$cart_count = isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'quantity')) : 0;
+
+
+// Fetch initial recommendations
+$user_id = $_SESSION['user_id'];
+// This endpoint doesn't exist yet, but we can build it later. For now, we get popular.
+$api_url = $api_base_url . '/api/recommend/filtered'; 
+$json_data = @file_get_contents($api_url);
+
+if ($json_data === false) {
+    $api_error = true;
+} else {
+    $api_response = json_decode($json_data, true);
+    if ($api_response && isset($api_response['recommendations'])) {
+        $recommended_products = $api_response['recommendations'];
+    } else {
+        $api_error = true;
+    }
+}
+
 
 // Check if the user is logged in by looking for the session variable.
 if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
@@ -122,19 +143,6 @@ if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
     $api_url = $api_base_url . '/api/popular?n=10';
 }
 
-// Call the Python API
-$json_data = @file_get_contents($api_url);
-
-if ($json_data === false) {
-    $api_error = true;
-} else {
-    $api_response = json_decode($json_data, true);
-    if ($api_response && isset($api_response['recommendations'])) {
-        $recommended_products = $api_response['recommendations'];
-    } else {
-        $api_error = true;
-    }
-}
 
 require_once 'config/connection.php';
 
@@ -174,6 +182,68 @@ if ($result && $result->num_rows > 0) {
     include("includes/header.php");
     ?>
     <style>
+        #recommendation-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 320px;
+            height: 100%;
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            padding: 20px;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 1050;
+            overflow-y: auto;
+        }
+
+        #recommendation-sidebar.open {
+            transform: translateX(0);
+        }
+
+        #sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 1040;
+        }
+
+        #sidebar-overlay.active {
+            display: block;
+        }
+
+        #open-sidebar-btn {
+            position: fixed;
+            top: 80px;
+            left: 15px;
+            z-index: 1030;
+            background-color: #0d6efd;
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .form-label {
+            font-weight: 600;
+        }
+        #price-range {
+            height: 12px;
+            margin: 20px 5px 30px 5px; /* Add vertical and horizontal spacing */
+        }
+
+        .price-range-values {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #6c757d;
+        }
         .cart-badge {
             position: absolute;
             top: -8px;
@@ -240,6 +310,78 @@ if ($result && $result->num_rows > 0) {
 </head>
 
 <body class="bg-light" style="font-family: 'Poppins', sans-serif;">
+
+<!-- Sidebar Toggle Button -->
+    <button id="open-sidebar-btn" class="btn"><i class="bi bi-sliders"></i></button>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay"></div>
+
+    <!-- Recommendation Sidebar -->
+    <div id="recommendation-sidebar">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0">Refine Recommendations</h4>
+            <button type="button" class="btn-close" id="close-sidebar-btn"></button>
+        </div>
+        <p>
+            Hi, 
+            <strong>
+            <?php 
+                echo isset($_SESSION['username']) && !empty($_SESSION['username']) 
+                ? htmlspecialchars($_SESSION['username']) 
+                : 'Guest'; 
+            ?>
+            </strong>! Adjust the settings to find your perfect item.
+        </p>
+        <hr>
+        <form id="rec-form">
+            <div class="mb-3">
+                <label for="brand-name" class="form-label">Brand Name</label>
+                <select class="form-select" id="brand-name" name="brand_name">
+                    <option value="">All Brands</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="product-type" class="form-label">Product Type</label>
+                <select class="form-select" id="product-type" name="product_type">
+                    <option value="">All Types</option>
+                </select>
+            </div>
+             <div class="mb-3">
+                <label for="originality" class="form-label">Originality</label>
+                <select class="form-select" id="originality" name="originality">
+                    <option value="">All Countries</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="spicy-level" class="form-label">Spicy Level: <span id="spicy-level-value">3</span></label>
+                <input type="range" class="form-range" id="spicy-level" name="spicy_level" min="0" max="5" step="1" value="3">
+            </div>
+            <div class="mb-3">
+                <label for="price-range" class="form-label">Price Range (MYR)</label>
+                <div id="price-range"></div>
+                <div class="price-range-values">
+                    <span id="price-lower">RM 0</span>
+                    <span id="price-upper">RM 100</span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Availability</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="availability" id="available" value="1" checked>
+                    <label class="form-check-label" for="available">Available</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="availability" id="not-available" value="0">
+                    <label class="form-check-label" for="not-available">Not Available</label>
+                </div>
+            </div>
+            <div class="d-grid gap-2 mt-4">
+                <button type="submit" class="btn btn-primary" id="find-btn">Find</button>
+                <button type="reset" class="btn btn-outline-secondary" id="reset-btn">Delete/Reset</button>
+            </div>
+        </form>
+    </div>
 
     <div class="container mt-4 pb-4" style="width: 140vh;">
 
@@ -326,10 +468,11 @@ if ($result && $result->num_rows > 0) {
                                 <i class="bi bi-chevron-right"></i>
                             </button>
 
+                            <!-- Scroll buttons -->
                             <div id="foods-menu" class="scrollable-menu-container">
                                 <?php if ($api_error || empty($recommended_products)) : ?>
                                     <div class="w-100 text-center p-4 text-muted">
-                                        <p>Could not load special recommendations right now. Please enjoy Browse our products below!</p>
+                                        <p>Could not load special recommendations right now. Please enjoy browsing our products below!</p>
                                     </div>
                                 <?php else : ?>
                                     <?php foreach ($recommended_products as $product) : ?>
@@ -348,15 +491,7 @@ if ($result && $result->num_rows > 0) {
                                                 <p class="food-description mb-0"><?php echo htmlspecialchars($product['Description'] ?? ''); ?></p>
                                             </div>
                                             <div class="d-flex align-items-center flex-wrap gap-2 mt-2">
-                                                <form method="get" action="items.php" style="display: inline;">
-                                                    <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($product['ProductID'] ?? ''); ?>">
-                                                    <input type="hidden" name="brand_name" value="<?php echo htmlspecialchars($product['BrandName'] ?? ''); ?>">
-                                                    <input type="hidden" name="flavour" value="<?php echo htmlspecialchars($product['Flavour'] ?? ''); ?>">
-                                                    <input type="hidden" name="price" value="<?php echo htmlspecialchars($product['PriceMYR'] ?? ''); ?>">
-                                                    <input type="hidden" name="image" value="<?php echo htmlspecialchars($product['ImagePath'] ?? ''); ?>">
-                                                    <button type="submit" class="add-button" title="Buy Now">→</button>
-                                                </form>
-                                                <button onclick="addToCart(<?php echo htmlspecialchars($product['ProductID'] ?? ''); ?>, '<?php echo htmlspecialchars($product['BrandName'] ?? ''); ?>', '<?php echo htmlspecialchars($product['Flavour'] ?? ''); ?>', <?php echo htmlspecialchars($product['PriceMYR'] ?? 0); ?>, '<?php echo htmlspecialchars($product['ImagePath'] ?? ''); ?>', '<?php echo htmlspecialchars($product['Description'] ?? ''); ?>')" class="add-button" title="Add to Cart">
+                                                <button onclick="addToCart(<?php echo htmlspecialchars($product['ProductID'] ?? ''); ?>, '<?php echo htmlspecialchars($product['BrandName'] ?? ''); ?>', '<?php echo htmlspecialchars($product['Flavour'] ?? ''); ?>', <?php echo htmlspecialchars($product['PriceMYR'] ?? 0); ?>, '<?php echo htmlspecialchars($product['ImagePath'] ?? ''); ?>', '<?php echo htmlspecialchars(addslashes($product['Description'] ?? '')); ?>')" class="add-button" title="Add to Cart">
                                                     <i class="bi bi-cart"></i>
                                                 </button>
                                             </div>
@@ -520,6 +655,7 @@ if ($result && $result->num_rows > 0) {
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.5.1/nouislider.min.js"></script>
     </div>
 
     <script>
@@ -622,6 +758,190 @@ if ($result && $result->num_rows > 0) {
                     badge.style.display = 'none';
                 }
             }
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('recommendation-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const openBtn = document.getElementById('open-sidebar-btn');
+            const closeBtn = document.getElementById('close-sidebar-btn');
+            const recForm = document.getElementById('rec-form');
+            const findBtn = document.getElementById('find-btn');
+            const resetBtn = document.getElementById('reset-btn');
+
+            function openSidebar() {
+                sidebar.classList.add('open');
+                overlay.classList.add('active');
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            }
+
+            openBtn.addEventListener('click', openSidebar);
+            closeBtn.addEventListener('click', closeSidebar);
+            overlay.addEventListener('click', closeSidebar);
+
+            // Spicy level slider value display
+            const spicySlider = document.getElementById('spicy-level');
+            const spicyValue = document.getElementById('spicy-level-value');
+            spicySlider.addEventListener('input', () => {
+                spicyValue.textContent = spicySlider.value;
+            });
+
+            // Price range slider
+            const priceSlider = document.getElementById('price-range');
+            const priceLower = document.getElementById('price-lower');
+            const priceUpper = document.getElementById('price-upper');
+
+            noUiSlider.create(priceSlider, {
+                start: [0, 100],
+                connect: true,
+                range: {
+                    'min': 0,
+                    'max': 100
+                },
+                step: 1,
+                format: {
+                    to: value => Math.round(value),
+                    from: value => Number(value)
+                }
+            });
+            
+            priceSlider.noUiSlider.on('update', function (values, handle) {
+                priceLower.innerHTML = `RM ${values[0]}`;
+                priceUpper.innerHTML = `RM ${values[1]}`;
+            });
+
+
+            // --- Populate Filters ---
+            async function populateFilters() {
+                try {
+                    const response = await fetch('<?php echo $api_base_url; ?>/api/products');
+                    const data = await response.json();
+                    if (!data.success) throw new Error('Failed to fetch products');
+
+                    const products = data.products;
+                    const brands = new Set();
+                    const types = new Set();
+                    const origins = new Set();
+                    let maxPrice = 0;
+
+                    products.forEach(p => {
+                        brands.add(p.BrandName);
+                        types.add(p.ProductType);
+                        if(p.Originality) origins.add(p.Originality); // Assuming Originality field exists
+                        if (p.PriceMYR > maxPrice) maxPrice = p.PriceMYR;
+                    });
+                    
+                    const brandSelect = document.getElementById('brand-name');
+                    brands.forEach(b => brandSelect.add(new Option(b, b)));
+
+                    const typeSelect = document.getElementById('product-type');
+                    types.forEach(t => typeSelect.add(new Option(t, t)));
+
+                    const originSelect = document.getElementById('originality');
+                    origins.forEach(o => originSelect.add(new Option(o, o)));
+
+                    // Update price slider max
+                    priceSlider.noUiSlider.updateOptions({
+                        range: {
+                            'min': 0,
+                            'max': Math.ceil(maxPrice)
+                        },
+                        start: [0, Math.ceil(maxPrice)]
+                    });
+
+                } catch (error) {
+                    console.error("Error populating filters:", error);
+                    showNotification('Could not load filter options.', 'danger');
+                }
+            }
+            populateFilters();
+
+
+            // --- Handle Form Submission ---
+            recForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                findBtn.disabled = true;
+                findBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Finding...`;
+                
+                const formData = new FormData(recForm);
+                const params = new URLSearchParams();
+                
+                for (const pair of formData.entries()) {
+                    params.append(pair[0], pair[1]);
+                }
+                const priceValues = priceSlider.noUiSlider.get();
+                params.append('min_price', priceValues[0]);
+                params.append('max_price', priceValues[1]);
+
+
+                try {
+                    const response = await fetch(`<?php echo $api_base_url; ?>/api/recommend/filtered?${params.toString()}`);
+                    const data = await response.json();
+                    
+                    if(data.success) {
+                        updateRecommendationsUI(data.recommendations);
+                        closeSidebar();
+                    } else {
+                        showNotification(data.error || 'No products found with these criteria.', 'warning');
+                    }
+
+                } catch (error) {
+                    console.error('Error fetching filtered recommendations:', error);
+                    showNotification('An error occurred while fetching recommendations.', 'danger');
+                } finally {
+                    findBtn.disabled = false;
+                    findBtn.innerHTML = 'Find';
+                }
+            });
+
+            // --- Reset Form ---
+            resetBtn.addEventListener('click', function() {
+                // Also reset sliders to their initial state
+                priceSlider.noUiSlider.reset();
+                spicySlider.value = 3;
+                spicyValue.textContent = '3';
+                // Potentially re-fetch default recommendations
+            });
+
+        });
+
+        function updateRecommendationsUI(products) {
+            const container = document.getElementById('foods-menu');
+            container.innerHTML = ''; // Clear existing items
+
+            if (!products || products.length === 0) {
+                container.innerHTML = `<div class="w-100 text-center p-4 text-muted">
+                                          <p>No recommendations match your criteria. Try different settings!</p>
+                                       </div>`;
+                return;
+            }
+
+            products.forEach(product => {
+                const productHtml = `
+                    <div class="scrollable-menu-item">
+                        <div class="food-image-container">
+                            <img src="${product.ImagePath || 'sources/placeholder.png'}" alt="${product.Flavour}" class="food-image card-img-top">
+                            ${product.DietaryTags ? `<div class="discount-badge">${product.DietaryTags}</div>` : ''}
+                        </div>
+                        <div>
+                            <h2 class="food-title mb-1">${product.BrandName}<br>(${product.Flavour})</h2>
+                            <div class="food-price mb-1">
+                                RM ${parseFloat(product.PriceMYR).toFixed(2)}
+                            </div>
+                            <p class="food-description mb-0">${product.Description || ''}</p>
+                        </div>
+                        <div class="d-flex align-items-center flex-wrap gap-2 mt-2">
+                             <button onclick="addToCart(${product.ProductID}, '${product.BrandName}', '${product.Flavour}', ${product.PriceMYR}, '${product.ImagePath}', '${(product.Description || '').replace(/'/g, "\\'")}')" class="add-button" title="Add to Cart">
+                                <i class="bi bi-cart"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += productHtml;
+            });
         }
 
         function showNotification(message, type) {
